@@ -1,15 +1,15 @@
 # Jira time fetcher (woof)
-##Prerequisites
+## Prerequisites
 - Java 11
 - Jira API key: You can generate one here:  https://id.atlassian.com/manage-profile/security/api-tokens
 - In the application folder you need the config in `fetchJiraTime-config.json` (see `fetchJiraTime-config_template.json`)
 
-##Run with gradle (easiest) 
+## Run with gradle (easiest) 
 
     gradlew run --args="...options..."
 
-##Run with JVM  (a bit more work)
-###Build
+## Run with JVM  (a bit more work)
+### Build
 For run with JVM you first need to build the jar file:
 
     gradlew build

@@ -1,0 +1,5 @@
+{
+  "server": "https://bkdev.atlassian.net",
+  "user": "...JiraUser...",
+  "apiKey": "...JiraApiKey..."
+}

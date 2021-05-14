@@ -12,6 +12,9 @@ public class CommandAllForSprint implements JiraApiCommand {
   @Parameter(names = "-s", required = true, description = "The sprint ID")
   private String sprint;
 
+  @Parameter(names = "-d", description = "Show detail per user per task per day")
+  private boolean showDetailPerUser;
+
   @Override
   public void run() {
     FetchForSprint.run(this);

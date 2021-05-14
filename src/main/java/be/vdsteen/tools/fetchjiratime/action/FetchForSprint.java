@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -35,9 +37,11 @@ public class FetchForSprint {
     }
     List<Issue> issuesForSprint = JiraApi.findIssuesForSprint(commandConfig.getSprint());
     Map<Issue, Map<AtlassianUser, Integer>> timePerIssuePerUser = new HashMap<>();
+    Map<Issue, Map<AtlassianUser, SortedMap<LocalDate, Integer>>> timePerIssuePerUserPerDay = new HashMap<>();
     Map<AtlassianUser, Integer> timePerUser = new HashMap<>();
     for (Issue issue : issuesForSprint) {
       Map<AtlassianUser, Integer> timePerUserForIssue = timePerIssuePerUser.computeIfAbsent(issue, key -> new HashMap<>());
+
       for (WorkLog workLog : issue.getWorkLogs()) {
         int seconds = workLog.getTimeSpentSeconds();
 
@@ -46,19 +50,18 @@ public class FetchForSprint {
         AtlassianUser authorUser = workLog.getAuthorUser();
         timePerUserForIssue.put(authorUser, seconds + timePerUserForIssue.getOrDefault(authorUser, 0));
         timePerUser.put(authorUser, seconds + timePerUser.getOrDefault(authorUser, 0));
+
+        Map<AtlassianUser, SortedMap<LocalDate, Integer>> timePerDayPerUser = timePerIssuePerUserPerDay.computeIfAbsent(issue, key -> new HashMap<>());
+        SortedMap<LocalDate, Integer> timerPerDay = timePerDayPerUser.computeIfAbsent(authorUser,  key -> new TreeMap<>());
+        timerPerDay.put(workLog.getStarted(), seconds + timerPerDay.getOrDefault(workLog.getStarted(), 0));
       }
     }
     System.out.println();
     System.out.println("Total time per issue for sprint (" + sprint.get().getName() + "):");
-    timePerIssuePerUser.forEach((issue, timePerUserForIssue) -> {
-      System.out.println("  " + issue.getKey() + " " + issue.getTitle());
-      AtomicInteger totalForIssue = new AtomicInteger(0);
-      timePerUserForIssue.forEach((atlassianUser, totalSeconds) -> {
-        System.out.println("      "+ atlassianUser.getDisplayName() + ": " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
-        totalForIssue.addAndGet(totalSeconds);
-      });
-      System.out.println("      Total: " + DurationHelper.formatSeconds(totalForIssue.get()) + " -- " + totalForIssue.get() + "s");
-    });
+
+    if (commandConfig.isShowDetailPerUser()) outputPerDayTimePerUser(timePerIssuePerUserPerDay);
+    else outputGlobalTimePerUser(timePerIssuePerUser);
+
     System.out.println();
     System.out.println("Total time per user for sprint (" + sprint.get().getName() + "):");
     timePerUser.forEach((atlassianUser, totalSeconds) -> {
@@ -66,6 +69,35 @@ public class FetchForSprint {
     });
   }
 
+  private static void outputPerDayTimePerUser(Map<Issue, Map<AtlassianUser, SortedMap<LocalDate, Integer>>> timePerIssuePerUserPerDay) {
+    timePerIssuePerUserPerDay.forEach((issue, timePerUserPerDayForIssue) -> {
+      System.out.println("  " + issue.getKey() + " " + issue.getTitle());
+      AtomicInteger totalForIssue = new AtomicInteger(0);
+      timePerUserPerDayForIssue.forEach((atlassianUser, secondsPerDay) -> {
+        AtomicInteger totalForUser = new AtomicInteger(0);
+        System.out.println("      " + atlassianUser.getDisplayName() + ": ");
+        secondsPerDay.forEach((day, totalSeconds) -> {
+          System.out.println("        " + day + ": " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
+          totalForIssue.addAndGet(totalSeconds);
+          totalForUser.addAndGet(totalSeconds);
+        });
+        System.out.println("        Total: " + DurationHelper.formatSeconds(totalForUser.get()) + " -- " + totalForUser.get() + "s");
+      });
+      System.out.println("      Total: " + DurationHelper.formatSeconds(totalForIssue.get()) + " -- " + totalForIssue.get() + "s");
+    });
+  }
+
+  private static void outputGlobalTimePerUser(Map<Issue, Map<AtlassianUser, Integer>> timePerIssuePerUser) {
+    timePerIssuePerUser.forEach((issue, timePerUserForIssue) -> {
+      System.out.println("  " + issue.getKey() + " " + issue.getTitle());
+      AtomicInteger totalForIssue = new AtomicInteger(0);
+      timePerUserForIssue.forEach((atlassianUser, totalSeconds) -> {
+        System.out.println("      " + atlassianUser.getDisplayName() + ": " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
+        totalForIssue.addAndGet(totalSeconds);
+      });
+      System.out.println("      Total: " + DurationHelper.formatSeconds(totalForIssue.get()) + " -- " + totalForIssue.get() + "s");
+    });
+  }
 
   private static void runForDate(LocalDate date, String userId) {
     System.out.println();

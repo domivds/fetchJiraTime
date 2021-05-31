@@ -15,6 +15,9 @@ public class CommandAllForSprint implements JiraApiCommand {
   @Parameter(names = "-d", description = "Show detail per user per task per day")
   private boolean showDetailPerUser;
 
+  @Parameter(names = "-u", description = "Get info for one user (use 'current' for API user)")
+  private String username;
+
   @Override
   public void run() {
     FetchForSprint.run(this);

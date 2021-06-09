@@ -16,7 +16,7 @@ public class WorkLog {
 
   public static WorkLog build(Map<String, Object> jsonWorkLog) {
     return builder()
-            .started(LocalDate.parse(((String) jsonWorkLog.get("started")).substring(0, 10)))
+            .started(JiraModelHelper.toLocalDate((String) jsonWorkLog.get("started")))
             .authorUser(AtlassianUser.build((Map<String, Object>) jsonWorkLog.get("author")))
             .timeSpentSeconds((int) jsonWorkLog.get("timeSpentSeconds"))
             .build();

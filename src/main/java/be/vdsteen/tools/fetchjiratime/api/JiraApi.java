@@ -12,6 +12,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +49,16 @@ public class JiraApi {
 
   public static JiraApiConfig getConfig() {
     return config;
+  }
+
+  public static List<Sprint> getSprintsForBoard(int boardId) {
+    Map<String, List<Map<String, Object>>> result = doAction(createSprintsByBoardUrl(boardId), Map.class);
+
+    List<Map<String, Object>> jsonIssues = result.get("values");
+    return jsonIssues.stream()
+            .map(Sprint::build)
+            .sorted(Comparator.comparing(Sprint::getStartDate))
+            .collect(Collectors.toList());
   }
 
   public static List<Issue> findIssuesForSprint(String sprintId) {
@@ -154,5 +165,9 @@ public class JiraApi {
 
   private static String createSprintSelfUrl(String sprintId) {
     return serverBaseUrl + "rest/agile/1.0/sprint/" + sprintId;
+  }
+
+  private static String createSprintsByBoardUrl(int boardId) {
+    return serverBaseUrl + "rest/agile/1.0/board/" + boardId + "/sprint";
   }
 }

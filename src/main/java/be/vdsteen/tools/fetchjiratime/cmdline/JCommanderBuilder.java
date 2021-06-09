@@ -9,6 +9,7 @@ public class JCommanderBuilder {
     return JCommander.newBuilder()
             .addCommand("allForSprint", new CommandAllForSprint())
             .addCommand("oneUser", new CommandOneUser())
+            .addCommand("listSprints", new CommandListSprints())
             .build();
   }
 }

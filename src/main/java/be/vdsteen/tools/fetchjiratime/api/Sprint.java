@@ -16,11 +16,22 @@ public class Sprint {
   private String state;
 
   public static Sprint build(Map<String, Object> jsonSprint) {
-    return builder()
+    String startDate = (String) jsonSprint.get("startDate");
+    String state = (String) jsonSprint.get("state");
+    SprintBuilder sprintBuilder = builder()
             .id((Integer) jsonSprint.get("id"))
             .name((String) jsonSprint.get("name"))
-            .state((String) jsonSprint.get("state"))
-            .startDate(JiraModelHelper.toLocalDate((String) jsonSprint.get("startDate")))
-            .build();
+            .state(state);
+    if (null != startDate) {
+      sprintBuilder.startDate(JiraModelHelper.toLocalDate(startDate));
+    }
+    else if (state.equals("future")) {
+      sprintBuilder.startDate(LocalDate.MAX);
+    }
+    else {
+      throw new RuntimeException("Sprint " + jsonSprint.get("id") + " has no startDate and is not state 'future'");
+    }
+    return sprintBuilder.build();
+
   }
 }

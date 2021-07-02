@@ -20,6 +20,9 @@ public class CommandOneUser implements JiraApiCommand {
   @Parameter(names = {"-t", "--till"}, description = "Till date inclusive(format 2021-04-24 - defaults to from date)", converter = LocalDateConvertor.class)
   private LocalDate tillDate;
 
+  @Parameter(names = {"-s"}, description = "Show total per day")
+  private boolean totalPerDay;
+
   public LocalDate getTillDate() {
     return null == tillDate ? fromDate : tillDate;
   }

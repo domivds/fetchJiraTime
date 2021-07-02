@@ -39,16 +39,18 @@ public class FetchForOneUser {
     System.out.println(date.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + date);
 
     List<Issue> issues = JiraApi.findIssuesByWorkLog(date, userId);
-    issues.forEach(issue -> handleIssue(issue, date, userId));
+    int total = issues.stream().map(issue -> handleIssue(issue, date, userId)).reduce(0, Integer::sum);
+    if (total > 0) System.out.println("   DAY TOTAL: " + DurationHelper.formatSeconds(total) + " -- " + total + "s");
   }
 
-  private static void handleIssue(Issue issue, LocalDate date, String userId) {
+  private static int handleIssue(Issue issue, LocalDate date, String userId) {
     int totalSeconds = issue.getWorkLogs().stream()
             .filter(workLog -> workLog.getStarted().equals(date))
             .filter(workLog -> workLog.getAuthorUser().getAccountId().equals(userId))
             .map(WorkLog::getTimeSpentSeconds)
             .reduce(0, Integer::sum);
     System.out.println("   " + issue.getKey() + " - " + issue.getTitle() + " - total: " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
+    return totalSeconds;
   }
 
 }

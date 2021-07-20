@@ -14,10 +14,10 @@ public class CommandOneUser implements JiraApiCommand {
   @Parameter(names = {"-u", "--username"}, description = "UserID (defaults to connecting user)")
   private String username;
 
-  @Parameter(names = {"-f", "--from"}, required = true, description = "From date (format 2021-04-24)", converter = LocalDateConvertor.class)
+  @Parameter(names = {"-f", "--from"}, required = true, description = "From date (format 2021-04-24 or today)", converter = LocalDateConvertor.class)
   private LocalDate fromDate;
 
-  @Parameter(names = {"-t", "--till"}, description = "Till date inclusive(format 2021-04-24 - defaults to from date)", converter = LocalDateConvertor.class)
+  @Parameter(names = {"-t", "--till"}, description = "Till date inclusive(format 2021-04-24 or today - defaults to from date)", converter = LocalDateConvertor.class)
   private LocalDate tillDate;
 
   @Parameter(names = {"-s"}, description = "Show total per day")

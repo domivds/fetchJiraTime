@@ -7,6 +7,7 @@ import java.time.LocalDate;
 public class LocalDateConvertor implements IStringConverter<LocalDate> {
   @Override
   public LocalDate convert(String value) {
+    if("today".equalsIgnoreCase(value)) return LocalDate.now();
     try {
       return LocalDate.parse(value);
     }

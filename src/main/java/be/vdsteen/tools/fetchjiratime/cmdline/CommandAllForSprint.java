@@ -12,8 +12,8 @@ public class CommandAllForSprint implements JiraApiCommand {
   @Parameter(names = "-s", required = true, description = "The sprint ID")
   private String sprint;
 
-  @Parameter(names = "-d", description = "Show detail per user per task per day")
-  private boolean showDetailPerUser;
+  @Parameter(names = "-g", description = "Grouping")
+  private Grouping grouping;
 
   @Parameter(names = "-u", description = "Get info for one user (use 'current' for API user)")
   private String username;
@@ -26,5 +26,9 @@ public class CommandAllForSprint implements JiraApiCommand {
   @Override
   public void validate() {
 
+  }
+
+  public enum Grouping {
+    perTaskPerDayPerUser, perUserPerTask
   }
 }

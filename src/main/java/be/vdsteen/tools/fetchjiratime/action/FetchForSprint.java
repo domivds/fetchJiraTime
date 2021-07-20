@@ -37,7 +37,7 @@ public class FetchForSprint {
     }
 
     String userId = null;
-    if(null != commandConfig.getUsername()) {
+    if (null != commandConfig.getUsername()) {
       userId = JiraApi.findUserId(commandConfig.getUsername().equals("current") ? JiraApi.getConfig().getUser() : commandConfig.getUsername());
       System.out.println("Requested user: " + commandConfig.getUsername());
       System.out.println("Found userId: " + userId);
@@ -54,21 +54,22 @@ public class FetchForSprint {
         if (seconds == 0) continue;
 
         AtlassianUser authorUser = workLog.getAuthorUser();
-        if(null != userId && !authorUser.getAccountId().equals(userId)) continue;
+        if (null != userId && !authorUser.getAccountId().equals(userId)) continue;
 
         Map<AtlassianUser, Integer> timePerUserForIssue = timePerIssuePerUser.computeIfAbsent(issue, key -> new HashMap<>());
         timePerUserForIssue.put(authorUser, seconds + timePerUserForIssue.getOrDefault(authorUser, 0));
         timePerUser.put(authorUser, seconds + timePerUser.getOrDefault(authorUser, 0));
 
         Map<AtlassianUser, SortedMap<LocalDate, Integer>> timePerDayPerUser = timePerIssuePerUserPerDay.computeIfAbsent(issue, key -> new HashMap<>());
-        SortedMap<LocalDate, Integer> timerPerDay = timePerDayPerUser.computeIfAbsent(authorUser,  key -> new TreeMap<>());
+        SortedMap<LocalDate, Integer> timerPerDay = timePerDayPerUser.computeIfAbsent(authorUser, key -> new TreeMap<>());
         timerPerDay.put(workLog.getStarted(), seconds + timerPerDay.getOrDefault(workLog.getStarted(), 0));
       }
     }
     System.out.println();
     System.out.println("Total time per issue for sprint (" + sprint.get().getName() + "):");
 
-    if (commandConfig.isShowDetailPerUser()) outputPerDayTimePerUser(timePerIssuePerUserPerDay, null == userId);
+    if (commandConfig.getGrouping() == CommandAllForSprint.Grouping.perTaskPerDayPerUser) outputPerTaskPerDayPerUser(timePerIssuePerUserPerDay, null == userId);
+    else if (commandConfig.getGrouping() == CommandAllForSprint.Grouping.perUserPerTask) outputPerUserPerTask(timePerIssuePerUser);
     else outputGlobalTimePerUser(timePerIssuePerUser, null == userId);
 
     System.out.println();
@@ -78,22 +79,43 @@ public class FetchForSprint {
     });
   }
 
-  private static void outputPerDayTimePerUser(Map<Issue, Map<AtlassianUser, SortedMap<LocalDate, Integer>>> timePerIssuePerUserPerDay, boolean multiUser) {
+  private static void outputPerTaskPerDayPerUser(Map<Issue, Map<AtlassianUser, SortedMap<LocalDate, Integer>>> timePerIssuePerUserPerDay, boolean multiUser) {
     timePerIssuePerUserPerDay.forEach((issue, timePerUserPerDayForIssue) -> {
       System.out.println("  " + issue.getKey() + " " + issue.getTitle());
       AtomicInteger totalForIssue = new AtomicInteger(0);
       timePerUserPerDayForIssue.forEach((atlassianUser, secondsPerDay) -> {
         AtomicInteger totalForUser = new AtomicInteger(0);
-        if(multiUser) System.out.println("      " + atlassianUser.getDisplayName() + ": ");
+        if (multiUser) System.out.println("      " + atlassianUser.getDisplayName() + ": ");
         secondsPerDay.forEach((day, totalSeconds) -> {
           System.out.println("        " + day + ": " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
           totalForIssue.addAndGet(totalSeconds);
           totalForUser.addAndGet(totalSeconds);
         });
-        if(multiUser) System.out.println("        Total: " + DurationHelper.formatSeconds(totalForUser.get()) + " -- " + totalForUser.get() + "s");
+        if (multiUser) System.out.println("        Total: " + DurationHelper.formatSeconds(totalForUser.get()) + " -- " + totalForUser.get() + "s");
       });
-      if(multiUser) System.out.println("      Total: " + DurationHelper.formatSeconds(totalForIssue.get()) + " -- " + totalForIssue.get() + "s");
+      if (multiUser) System.out.println("      Total: " + DurationHelper.formatSeconds(totalForIssue.get()) + " -- " + totalForIssue.get() + "s");
     });
+  }
+
+  private static void outputPerUserPerTask(Map<Issue, Map<AtlassianUser, Integer>> timePerIssuePerUser) {
+    Map<AtlassianUser, Map<Issue, Integer>> inversed = new HashMap<>();
+
+    timePerIssuePerUser.forEach((issue, atlassianUserIntegerMap) -> {
+      for (Map.Entry<AtlassianUser, Integer> entry : atlassianUserIntegerMap.entrySet()) {
+        Map<Issue, Integer> issuesForThisUser = inversed.computeIfAbsent(entry.getKey(), key -> new HashMap<>());
+        issuesForThisUser.put(issue, entry.getValue() + issuesForThisUser.getOrDefault(issue, 0));
+      }
+    });
+
+    for (Map.Entry<AtlassianUser, Map<Issue, Integer>> entry : inversed.entrySet()) {
+      System.out.println("  " + entry.getKey().getDisplayName());
+      int total = 0;
+      for (Map.Entry<Issue, Integer> timePerIssue : entry.getValue().entrySet()) {
+        total += timePerIssue.getValue();
+        System.out.println("    " + timePerIssue.getKey().getKey() + " " + timePerIssue.getKey().getTitle() + ": " + DurationHelper.formatSeconds(timePerIssue.getValue()));
+      }
+      System.out.println("    TOTAL: " + DurationHelper.formatSeconds(total));
+    }
   }
 
   private static void outputGlobalTimePerUser(Map<Issue, Map<AtlassianUser, Integer>> timePerIssuePerUser, boolean multiUser) {
@@ -101,11 +123,11 @@ public class FetchForSprint {
       System.out.println("  " + issue.getKey() + " " + issue.getTitle());
       AtomicInteger totalForIssue = new AtomicInteger(0);
       timePerUserForIssue.forEach((atlassianUser, totalSeconds) -> {
-        if(multiUser) System.out.println("      " + atlassianUser.getDisplayName() + ": " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
+        if (multiUser) System.out.println("      " + atlassianUser.getDisplayName() + ": " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
         else System.out.println("      " + DurationHelper.formatSeconds(totalSeconds) + " -- " + totalSeconds + "s");
         totalForIssue.addAndGet(totalSeconds);
       });
-      if(multiUser) System.out.println("      Total: " + DurationHelper.formatSeconds(totalForIssue.get()) + " -- " + totalForIssue.get() + "s");
+      if (multiUser) System.out.println("      Total: " + DurationHelper.formatSeconds(totalForIssue.get()) + " -- " + totalForIssue.get() + "s");
     });
   }
 
